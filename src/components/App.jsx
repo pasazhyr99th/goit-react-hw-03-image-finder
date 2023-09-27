@@ -1,63 +1,23 @@
-// import React, { Component } from 'react';
-// import { Container } from './App.styled';
-// import Modal from './Modal';
-// import Searchbar from './Searchbar';
-// import ImageGallery from './ImageGallery';
-
-// class App extends Component {
-//   state = {
-//     showModal: false,
-//     query: '',
-//   };
-
-//   handleFormSubmit = query => {
-//     this.setState({ query });
-//   };
-
-//   toggleModal = () => {
-//     this.setState(({ showModal }) => ({
-//       showModal: !showModal,
-//     }));
-//   };
-
-//   render() {
-//     const { showModal } = this.state;
-
-//     return (
-//       <Container>
-//         <Searchbar onSubmit={this.handleFormSubmit} />
-//         <ImageGallery query={this.state.query} />
-//         <button type="button" onClick={this.toggleModal}>
-//           Open modal
-//         </button>
-//         {showModal && <Modal onClose={this.toggleModal} />}
-//       </Container>
-//     );
-//   }
-// }
-
-// export default App;
-
 import React, { Component } from 'react';
+import axios from 'axios';
 import { Container } from './App.styled';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
-import ImageGalleryItem from './ImageGalleryItem';
 import Button from './Button';
+import Loader from './Loader';
 import Modal from './Modal';
-import { fetchImages } from '../services/api';
 
 class App extends Component {
   state = {
     query: '',
-    images: [],
     page: 1,
-    showModal: false,
-    modalImage: '',
+    images: [],
+    selectedImage: null,
+    isLoading: false,
   };
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.query !== this.state.query) {
+    if (this.state.query !== prevState.query || this.state.page !== prevState.page) {
       this.fetchImages();
     }
   }
@@ -65,61 +25,55 @@ class App extends Component {
   fetchImages = () => {
     const { query, page } = this.state;
 
-    fetchImages(query, page)
-      .then(data => {
+    const BASE_URL = 'https://pixabay.com/api/';
+    const API_KEY = '35772467-21ed811caf8158e0babf87439';
+    const PER_PAGE = 12;
+
+    this.setState({ isLoading: true });
+
+    axios
+      .get(
+        `${BASE_URL}?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
+      )
+      .then(response => {
         this.setState(prevState => ({
-          images: [...prevState.images, ...data],
+          images: [...prevState.images, ...response.data.hits],
           page: prevState.page + 1,
+          isLoading: false,
         }));
       })
-      .catch(error => console.error('Error fetching images:', error));
+      .catch(error => {
+        console.error('Error fetching images:', error);
+        this.setState({ isLoading: false });
+      });
   };
 
-  handleSearchSubmit = query => {
-    this.setState({ query, images: [], page: 1 });
+  handleSearchSubmit = (query) => {
+    this.setState({ query, page: 1, images: [] });
   };
 
-  handleLoadMore = () => {
-    this.fetchImages();
-  };
-
-  handleImageClick = (src, alt) => {
-    this.setState({
-      showModal: true,
-      modalImage: { src, alt },
-    });
+  handleImageClick = (largeImageURL) => {
+    this.setState({ selectedImage: largeImageURL });
   };
 
   handleCloseModal = () => {
-    this.setState({
-      showModal: false,
-      modalImage: '',
-    });
+    this.setState({ selectedImage: null });
   };
 
   render() {
-    const { images, showModal, modalImage } = this.state;
+    const { images, isLoading, selectedImage } = this.state;
 
     return (
       <Container>
         <Searchbar onSubmit={this.handleSearchSubmit} />
-        <ImageGallery>
-          {images.map(image => (
-            <ImageGalleryItem
-              key={image.id}
-              src={image.webformatURL}
-              alt={image.tags}
-              onClick={() =>
-                this.handleImageClick(image.largeImageURL, image.tags)
-              }
-            />
-          ))}
-        </ImageGallery>
-        {images.length > 0 && <Button onClick={this.handleLoadMore} />}
-        {showModal && (
+        <ImageGallery images={images} onImageClick={this.handleImageClick} />
+        {isLoading && <Loader />}
+        {images.length > 0 && images.length % 12 === 0 && (
+          <Button onClick={this.fetchImages} />
+        )}
+        {selectedImage && (
           <Modal
-            src={modalImage.src}
-            alt={modalImage.alt}
+            largeImageURL={selectedImage}
             onClose={this.handleCloseModal}
           />
         )}

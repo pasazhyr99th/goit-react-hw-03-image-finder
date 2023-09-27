@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import React, { Component } from 'react';
 import {
   SearchbarStyle,
   SearchbarForm,
@@ -25,18 +25,19 @@ class Searchbar extends Component {
     }
 
     this.props.onSubmit(this.state.query);
-    this.setState({ query: '' });
+    // this.setState({ query: '' });
   };
 
   render() {
     return (
       <SearchbarStyle>
         <SearchbarForm onSubmit={this.handleSubmit}>
-          <SearchbarFormBtn type="submit">Search</SearchbarFormBtn>
+          <SearchbarFormBtn type="submit">
+            Search
+          </SearchbarFormBtn>
 
           <SearchbarFormInput
             type="text"
-            name="search"
             value={this.state.query}
             onChange={this.handleNameChange}
             autocomplete="off"
