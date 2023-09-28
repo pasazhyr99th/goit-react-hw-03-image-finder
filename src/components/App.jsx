@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import axios from 'axios';
+// import axios from 'axios';
+import { fetchImages } from '../service/api';
 import { Container } from './App.styled';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
@@ -14,45 +15,68 @@ class App extends Component {
     images: [],
     selectedImage: null,
     isLoading: false,
+    loadMore: false,
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.query !== prevState.query || this.state.page !== prevState.page) {
+  componentDidUpdate(_, prevState) {
+    if (
+      this.state.page !== prevState.page ||
+      this.state.query !== prevState.query
+    ) {
       this.fetchImages();
+      this.setState(prevState => ({
+        page: prevState.page + 1,
+      }));
     }
   }
 
-  fetchImages = () => {
+  fetchImages = async () => {
     const { query, page } = this.state;
 
-    const BASE_URL = 'https://pixabay.com/api/';
-    const API_KEY = '35772467-21ed811caf8158e0babf87439';
-    const PER_PAGE = 12;
+    // const BASE_URL = 'https://pixabay.com/api/';
+    // const API_KEY = '35772467-21ed811caf8158e0babf87439';
+    // const PER_PAGE = 12;
 
     this.setState({ isLoading: true });
 
-    axios
-      .get(
-        `${BASE_URL}?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
-      )
-      .then(response => {
-        this.setState(prevState => ({
-          images: [...prevState.images, ...response.data.hits],
-          page: prevState.page + 1,
-          isLoading: false,
-        }));
-      })
-      .catch(error => {
-        console.error('Error fetching images:', error);
-        this.setState({ isLoading: false });
-      });
+    try {
+      const data = await fetchImages(query, page);
+
+      this.setState(prevState => ({
+        images: [...prevState.images, ...data.hits],
+        loadMore: this.state.page < Math.ceil(data.totalHits / 12),
+      }));
+    } catch (error) {
+      console.error('Error fetching images:', error);
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  
+
+    // використати async await
+    // axios
+    //   .get(
+    //     `${BASE_URL}?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
+    //   )
+    //   .then(response => {
+    //     this.setState(prevState => ({
+    //       images: [...prevState.images, ...response.data.hits],
+    //       // page: prevState.page + 1,
+    //       loadMore: this.state.page < Math.ceil(response.data.totalHits / 12),
+    //     }));
+    //   })
+    //   .catch(error => {
+    //     console.error('Error fetching images:', error);
+    //     // this.setState({ isLoading: false });
+    //   })
+    //   .finally(() => this.setState({ isLoading: false }));
   };
 
-  handleSearchSubmit = (query) => {
+  handleSearchSubmit = query => {
     this.setState({ query, page: 1, images: [] });
   };
 
-  handleImageClick = (largeImageURL) => {
+  handleImageClick = largeImageURL => {
     this.setState({ selectedImage: largeImageURL });
   };
 
@@ -68,9 +92,7 @@ class App extends Component {
         <Searchbar onSubmit={this.handleSearchSubmit} />
         <ImageGallery images={images} onImageClick={this.handleImageClick} />
         {isLoading && <Loader />}
-        {images.length > 0 && images.length % 12 === 0 && (
-          <Button onClick={this.fetchImages} />
-        )}
+        {this.state.loadMore && <Button onClick={this.fetchImages} />}
         {selectedImage && (
           <Modal
             largeImageURL={selectedImage}
