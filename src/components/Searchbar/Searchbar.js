@@ -6,6 +6,8 @@ import {
   SearchbarFormBtn,
   SearchbarFormInput,
 } from './Searchbar.styled';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 class Searchbar extends Component {
   state = {
@@ -20,13 +22,21 @@ class Searchbar extends Component {
     e.preventDefault();
 
     if (this.state.query.trim() === '') {
-      alert('To search, please enter a query!');
+      toast.warn('To search, please enter a query!', {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'colored',
+      });
       this.setState({ query: '' });
       return;
     }
 
     this.props.onSubmit(this.state.query);
-    // this.setState({ query: '' });
   };
 
   render() {

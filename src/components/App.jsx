@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-// import axios from 'axios';
 import { fetchImages } from '../service/api';
 import { Container } from './App.styled';
 import Searchbar from './Searchbar';
@@ -7,6 +6,8 @@ import ImageGallery from './ImageGallery';
 import Button from './Button';
 import Loader from './Loader';
 import Modal from './Modal';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 class App extends Component {
   state = {
@@ -24,52 +25,55 @@ class App extends Component {
       this.state.query !== prevState.query
     ) {
       this.fetchImages();
-      this.setState(prevState => ({
-        page: prevState.page + 1,
-      }));
     }
   }
 
+  loadMore = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
+  };
+
   fetchImages = async () => {
     const { query, page } = this.state;
-
-    // const BASE_URL = 'https://pixabay.com/api/';
-    // const API_KEY = '35772467-21ed811caf8158e0babf87439';
-    // const PER_PAGE = 12;
 
     this.setState({ isLoading: true });
 
     try {
       const data = await fetchImages(query, page);
 
+      if (data.hits.length === 0) {
+        this.setState({ loadMore: false, isLoading: false });
+        return toast.info('Sorry, no images found. Try something else! 🤔', {
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'colored',
+        });
+      }
+
       this.setState(prevState => ({
         images: [...prevState.images, ...data.hits],
-        loadMore: this.state.page < Math.ceil(data.totalHits / 12),
+        loadMore: page < Math.ceil(data.totalHits / 12),
       }));
     } catch (error) {
-      console.error('Error fetching images:', error);
+      toast.error(`Error fetching images: ${error} ⛔️`, {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'colored',
+      });
     } finally {
       this.setState({ isLoading: false });
     }
-  
-
-    // використати async await
-    // axios
-    //   .get(
-    //     `${BASE_URL}?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
-    //   )
-    //   .then(response => {
-    //     this.setState(prevState => ({
-    //       images: [...prevState.images, ...response.data.hits],
-    //       // page: prevState.page + 1,
-    //       loadMore: this.state.page < Math.ceil(response.data.totalHits / 12),
-    //     }));
-    //   })
-    //   .catch(error => {
-    //     console.error('Error fetching images:', error);
-    //     // this.setState({ isLoading: false });
-    //   })
-    //   .finally(() => this.setState({ isLoading: false }));
   };
 
   handleSearchSubmit = query => {
@@ -92,13 +96,16 @@ class App extends Component {
         <Searchbar onSubmit={this.handleSearchSubmit} />
         <ImageGallery images={images} onImageClick={this.handleImageClick} />
         {isLoading && <Loader />}
-        {this.state.loadMore && <Button onClick={this.fetchImages} />}
+        {this.state.loadMore && !isLoading && (
+          <Button onClick={this.loadMore} />
+        )}
         {selectedImage && (
           <Modal
             largeImageURL={selectedImage}
             onClose={this.handleCloseModal}
           />
         )}
+        <ToastContainer />
       </Container>
     );
   }
