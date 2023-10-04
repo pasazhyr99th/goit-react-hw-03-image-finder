@@ -18,6 +18,7 @@ class App extends Component {
     isLoading: false,
     loadMore: false,
   };
+  
 
   componentDidUpdate(_, prevState) {
     if (
